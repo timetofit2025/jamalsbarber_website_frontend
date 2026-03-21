@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './Hero.css'
 import { fetchArtists, fetchGallery, fetchServices } from '../../admin/api/publicApi'
+import BookingCalendar from '../../components/BookingCalendar/BookingCalendar'
 
 /* ── INTERSECTION OBSERVER HOOK ── */
 const useInView = (threshold = 0.15) => {
@@ -19,16 +20,19 @@ const useInView = (threshold = 0.15) => {
 
 /* ── STATIC DATA (Testimonials stay hardcoded) ── */
 const TESTIMONIALS = [
-    { stars: "★★★★★", text: "Jamal's is not just a barber shop — it's an experience. The attention to detail is unmatched and the atmosphere is exactly what a classic barbershop should feel like.", name: "Marcus T.",  role: "Regular Client",    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80" },
-    { stars: "★★★★★", text: "Best hot towel shave in the city, hands down. I've been coming here every two weeks for three years and the quality has never wavered once.",                          name: "Darius K.",  role: "Loyal Member",      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&q=80" },
-    { stars: "★★★★★", text: "From the moment you walk in, you feel the difference. Skilled barbers, premium products, and a vibe that makes you want to stay all day.",                            name: "Jordan M.",  role: "First-Time Visitor", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80" },
+    { stars: "★★★★★", text: "Jamal's is not just a barber shop — it's an experience. The attention to detail is unmatched and the atmosphere is exactly what a classic barbershop should feel like.", name: "Marcus T.", role: "Regular Client", avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&q=80" },
+    { stars: "★★★★★", text: "Best hot towel shave in the city, hands down. I've been coming here every two weeks for three years and the quality has never wavered once.", name: "Darius K.", role: "Loyal Member", avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&q=80" },
+    { stars: "★★★★★", text: "From the moment you walk in, you feel the difference. Skilled barbers, premium products, and a vibe that makes you want to stay all day.", name: "Jordan M.", role: "First-Time Visitor", avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&h=100&fit=crop&q=80" },
 ]
 
 const TIME_SLOTS = [
     "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-    "1:00 PM", "2:00 PM",  "3:00 PM",  "4:00 PM",
-    "5:00 PM", "6:00 PM",  "7:00 PM",
+    "1:00 PM", "2:00 PM", "3:00 PM", "4:00 PM",
+    "5:00 PM", "6:00 PM", "7:00 PM",
 ]
+
+/* ── PARTY SIZES (Max 3 people) ── */
+const PARTY_SIZES = [1, 2, 3]
 
 /* ── FALLBACK image if artist has no photo ── */
 const FALLBACK_IMG = 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=500&fit=crop&q=80'
@@ -46,20 +50,25 @@ function AnimatedSection({ children, className = '', style: s = {} }) {
 /* ── MAIN COMPONENT ── */
 export default function JamalBarbers() {
 
-    const [scrolled,     setScrolled]     = useState(false)
-    const [submitted,    setSubmitted]    = useState(false)
-    const [submitting,   setSubmitting]   = useState(false)
-    const [submitError,  setSubmitError]  = useState('')
-    const [formData,     setFormData]     = useState({
+    const [scrolled, setScrolled] = useState(false)
+    const [submitted, setSubmitted] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
+    const [submitError, setSubmitError] = useState('')
+    const [formData, setFormData] = useState({
         name: '', email: '', phone: '',
         service: '', artist: '',
         date: '', time: '', notes: '',
+        partySize: 1
     })
 
+    // Calendar state
+    const [selectedDate, setSelectedDate] = useState(null)
+    const [selectedTime, setSelectedTime] = useState(null)
+
     // ── Live data from backend ──
-    const [team,        setTeam]        = useState([])
+    const [team, setTeam] = useState([])
     const [galleryImgs, setGalleryImgs] = useState([])
-    const [services,    setServices]    = useState([])
+    const [services, setServices] = useState([])
     const [dataLoading, setDataLoading] = useState(true)
 
     // ── Scroll listener ──
@@ -99,14 +108,29 @@ export default function JamalBarbers() {
         setSubmitting(true)
         setSubmitError('')
         try {
-            const res = await fetch('http://localhost:8080/api/bookings', {
-                method:  'POST',
+            const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8080/api'
+            const res = await fetch(`${API_BASE}/bookings`, {
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(formData),
+                body: JSON.stringify({
+                    ...formData,
+                    partySize: parseInt(formData.partySize)
+                }),
             })
-            if (!res.ok) throw new Error('Booking failed. Please try again.')
+
+            if (!res.ok) {
+                const errorData = await res.json()
+                throw new Error(errorData.error || 'Booking failed. Please try again.')
+            }
+
             setSubmitted(true)
-            setFormData({ name:'', email:'', phone:'', service:'', artist:'', date:'', time:'', notes:'' })
+            setFormData({
+                name: '', email: '', phone: '', service: '',
+                artist: '', date: '', time: '', notes: '',
+                partySize: 1
+            })
+            setSelectedDate(null)
+            setSelectedTime(null)
         } catch (err) {
             setSubmitError(err.message || 'Something went wrong. Please try again.')
         } finally {
@@ -116,15 +140,11 @@ export default function JamalBarbers() {
 
     // ── Helper: get artist photo URL ──
     const artistPhoto = (artist) =>
-        artist.photoUrl
-            ? `http://localhost:8080${artist.photoUrl}`
-            : FALLBACK_IMG
+        artist.photoUrl || FALLBACK_IMG
 
     // ── Helper: get gallery image URL ──
     const galleryUrl = (img) =>
-        img.imageUrl
-            ? `http://localhost:8080${img.imageUrl}`
-            : img.src || ''
+        img.imageUrl || img.src || ''
 
     const marqueeItems = [
         "Classic Cuts", "Hot Towel Shave", "Beard Sculpt",
@@ -227,9 +247,9 @@ export default function JamalBarbers() {
                             </AnimatedSection>
                             <div className="about-features">
                                 {[
-                                    { icon: "⚡", title: "Expert Barbers",       desc: "A team of passionate professionals with decades of combined experience." },
-                                    { icon: "🏆", title: "Premium Products",     desc: "We use only the finest grooming products sourced from around the world."  },
-                                    { icon: "🎯", title: "Precision Every Time", desc: "Consistency is our hallmark. Every visit exceeds the last."                },
+                                    { icon: "⚡", title: "Expert Barbers", desc: "A team of passionate professionals with decades of combined experience." },
+                                    { icon: "🏆", title: "Premium Products", desc: "We use only the finest grooming products sourced from around the world." },
+                                    { icon: "🎯", title: "Precision Every Time", desc: "Consistency is our hallmark. Every visit exceeds the last." },
                                 ].map((f, i) => (
                                     <AnimatedSection key={i} className={`delay-${i + 1}`}>
                                         <div className="about-feature">
@@ -271,16 +291,11 @@ export default function JamalBarbers() {
                                 <AnimatedSection key={s.id || i} className={`delay-${(i % 3) + 1}`}>
                                     <div className="service-card">
                                         <div className="service-card-gloss" />
-                                        {/* ✅ num from backend */}
                                         <div className="service-card-num">{s.num || `0${i + 1}`}</div>
-                                        {/* ✅ icon from backend */}
                                         <div className="service-icon">{s.icon || '✂️'}</div>
                                         <h3>{s.title}</h3>
-                                        {/* ✅ description (not desc) */}
                                         <p>{s.description}</p>
-                                        {/* ✅ price with £ symbol */}
                                         <div className="service-price">£{s.price}</div>
-                                        {/* ✅ priceNote (not note) */}
                                         <div className="service-price-note">{s.priceNote}</div>
                                     </div>
                                 </AnimatedSection>
@@ -315,10 +330,9 @@ export default function JamalBarbers() {
                                     className="gallery-item"
                                     style={
                                         i === 0 ? { gridColumn: 'span 2', gridRow: 'span 2' } :
-                                        i === 3 ? { gridColumn: 'span 2' } : {}
+                                            i === 3 ? { gridColumn: 'span 2' } : {}
                                     }
                                 >
-                                    {/* ✅ imageUrl from backend */}
                                     <img src={galleryUrl(g)} alt={g.label} loading="lazy" />
                                     <div className="gallery-overlay">
                                         <div className="gallery-overlay-inner">
@@ -353,7 +367,6 @@ export default function JamalBarbers() {
                             team.map((m, i) => (
                                 <AnimatedSection key={m.id || i} className={`delay-${(i % 4) + 1}`}>
                                     <div className="team-card">
-                                        {/* ✅ photoUrl from backend, with fallback */}
                                         <img src={artistPhoto(m)} alt={m.name} loading="lazy" />
                                         <div className="team-card-name-always">
                                             <h3>{m.name}</h3>
@@ -404,7 +417,7 @@ export default function JamalBarbers() {
             </section>
 
             {/* ══════════════════════════════════════
-                BOOKING — Submits to backend
+                BOOKING — Submits to backend with Calendar
             ══════════════════════════════════════ */}
             <section id="booking" className="booking">
                 <div className="booking-bg" />
@@ -423,9 +436,9 @@ export default function JamalBarbers() {
                                 <div className="contact-items">
                                     {[
                                         { icon: "📍", label: "Location", value: "111 St Marry Road Southampton SO14 0AN" },
-                                        { icon: "📞", label: "Phone",    value: "+44 07477778677" },
-                                        { icon: "✉️", label: "Email",    value: "hello@jamalbarbers.com" },
-                                        { icon: "🕐", label: "Hours",    value: "Mon–Sat: 9AM–7PM · Sun: 10AM–5PM" },
+                                        { icon: "📞", label: "Phone", value: "+44 07477778677" },
+                                        { icon: "✉️", label: "Email", value: "hello@jamalbarbers.com" },
+                                        { icon: "🕐", label: "Hours", value: "Mon–Sat: 9AM–7PM · Sun: 10AM–5PM" },
                                     ].map((c, i) => (
                                         <div key={i} className="contact-item">
                                             <div className="contact-item-icon">{c.icon}</div>
@@ -448,7 +461,6 @@ export default function JamalBarbers() {
                                     border: '1px solid rgba(200,169,110,0.2)',
                                     borderRadius: '4px',
                                 }}>
-                                    {/* Success icon */}
                                     <div style={{
                                         width: 72, height: 72,
                                         borderRadius: '50%',
@@ -479,6 +491,20 @@ export default function JamalBarbers() {
                                 </div>
                             ) : (
                                 <form className="booking-form" onSubmit={handleSubmit}>
+
+                                    {/* Calendar View */}
+                                    <BookingCalendar
+                                        onDateSelect={(date) => {
+                                            setSelectedDate(date)
+                                            setFormData({ ...formData, date })
+                                        }}
+                                        onTimeSelect={(time) => {
+                                            setSelectedTime(time)
+                                            setFormData({ ...formData, time })
+                                        }}
+                                        selectedDate={selectedDate}
+                                        selectedTime={selectedTime}
+                                    />
 
                                     {/* Name + Phone */}
                                     <div className="form-row">
@@ -519,7 +545,7 @@ export default function JamalBarbers() {
                                         </select>
                                     </div>
 
-                                    {/* ✅ Preferred Artist — from backend team */}
+                                    {/* Preferred Artist — from backend team */}
                                     <div className="form-group">
                                         <label className="form-label">Preferred Artist</label>
                                         <select className="form-select"
@@ -534,25 +560,24 @@ export default function JamalBarbers() {
                                         </select>
                                     </div>
 
-                                    {/* Date + Time */}
-                                    <div className="form-row">
-                                        <div className="form-group">
-                                            <label className="form-label">Preferred Date</label>
-                                            <input className="form-input" type="date" required
-                                                value={formData.date}
-                                                onChange={e => setFormData({ ...formData, date: e.target.value })} />
-                                        </div>
-                                        <div className="form-group">
-                                            <label className="form-label">Preferred Time</label>
-                                            <select className="form-select"
-                                                value={formData.time}
-                                                onChange={e => setFormData({ ...formData, time: e.target.value })}>
-                                                <option value="">Select time</option>
-                                                {TIME_SLOTS.map(t => (
-                                                    <option key={t}>{t}</option>
-                                                ))}
-                                            </select>
-                                        </div>
+                                    {/* Party Size */}
+                                    <div className="form-group">
+                                        <label className="form-label">Number of People (Max 3)</label>
+                                        <select
+                                            className="form-select"
+                                            value={formData.partySize}
+                                            onChange={e => setFormData({ ...formData, partySize: e.target.value })}
+                                            required
+                                        >
+                                            {PARTY_SIZES.map(size => (
+                                                <option key={size} value={size}>
+                                                    {size} {size === 1 ? 'person' : 'people'}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <small style={{ color: '#888', fontSize: '0.7rem', marginTop: '4px', display: 'block' }}>
+                                            Maximum 3 people per booking slot
+                                        </small>
                                     </div>
 
                                     {/* Notes */}
