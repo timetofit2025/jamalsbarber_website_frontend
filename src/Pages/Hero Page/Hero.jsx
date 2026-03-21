@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import './Hero.css'
 import { fetchArtists, fetchGallery, fetchServices } from '../../admin/api/publicApi'
-import BookingCalendar from '../../components/BookingCalendar/BookingCalendar'
+import BookingCalendar from '../../Components/BookingCalendar/BookingCalendar'
 
 /* ── INTERSECTION OBSERVER HOOK ── */
 const useInView = (threshold = 0.15) => {
