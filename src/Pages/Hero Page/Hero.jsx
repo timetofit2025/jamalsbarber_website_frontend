@@ -436,7 +436,7 @@ export default function JamalBarbers() {
                                 <div className="contact-items">
                                     {[
                                         { icon: "📍", label: "Location", value: "111 St Marry Road Southampton SO14 0AN" },
-                                        { icon: "📞", label: "Phone", value: "+44 07477778677" },
+                                        { icon: "📞", label: "Phone", value: "+44 7477778677" },
                                         { icon: "✉️", label: "Email", value: "hello@jamalbarbers.com" },
                                         { icon: "🕐", label: "Hours", value: "Mon–Sat: 9AM–7PM · Sun: 10AM–5PM" },
                                     ].map((c, i) => (
@@ -492,19 +492,6 @@ export default function JamalBarbers() {
                             ) : (
                                 <form className="booking-form" onSubmit={handleSubmit}>
 
-                                    {/* Calendar View */}
-                                    <BookingCalendar
-                                        onDateSelect={(date) => {
-                                            setSelectedDate(date)
-                                            setFormData({ ...formData, date })
-                                        }}
-                                        onTimeSelect={(time) => {
-                                            setSelectedTime(time)
-                                            setFormData({ ...formData, time })
-                                        }}
-                                        selectedDate={selectedDate}
-                                        selectedTime={selectedTime}
-                                    />
 
                                     {/* Name + Phone */}
                                     <div className="form-row">
@@ -559,6 +546,20 @@ export default function JamalBarbers() {
                                             ))}
                                         </select>
                                     </div>
+
+                                    {/* Calendar View */}
+                                    <BookingCalendar
+                                        onDateSelect={(date) => {
+                                            setSelectedDate(date)
+                                            setFormData({ ...formData, date })
+                                        }}
+                                        onTimeSelect={(time) => {
+                                            setSelectedTime(time)
+                                            setFormData({ ...formData, time })
+                                        }}
+                                        selectedDate={selectedDate}
+                                        selectedTime={selectedTime}
+                                    />
 
                                     {/* Party Size */}
                                     <div className="form-group">

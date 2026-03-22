@@ -1245,9 +1245,10 @@
   }
 
   .contact-item-text span {
+      font-family: Tahoma, sans-serif;
       font-size: 0.95rem;
-      color: var(--white);
-      font-weight: 600;
+      color: var(--light);
+      font-weight: 300;
       line-height: 1.4;
   }
 
