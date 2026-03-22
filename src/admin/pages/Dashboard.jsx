@@ -4,9 +4,9 @@ import AdminLayout from '../../admin/components/AdminLayout/AdminLayout'
 import { bookingsAPI, artistsAPI, galleryAPI, servicesAPI } from '../api/api'
 
 const Dashboard = () => {
-    const [stats,    setStats]    = useState(null)
+    const [stats, setStats] = useState(null)
     const [bookings, setBookings] = useState([])
-    const [loading,  setLoading]  = useState(true)
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         fetchData()
@@ -22,14 +22,14 @@ const Dashboard = () => {
             ])
             setBookings(allBookings)
             setStats({
-                totalBookings:    allBookings.length,
-                pendingBookings:  allBookings.filter(b => b.status === 'pending').length,
+                totalBookings: allBookings.length,
+                pendingBookings: allBookings.filter(b => b.status === 'pending').length,
                 approvedBookings: allBookings.filter(b => b.status === 'approved').length,
                 rejectedBookings: allBookings.filter(b => b.status === 'rejected').length,
-                totalArtists:     allArtists.length,
-                totalGallery:     allGallery.length,
-                totalServices:    allServices.length,
-                activeServices:   allServices.filter(s => s.active).length,
+                totalArtists: allArtists.length,
+                totalGallery: allGallery.length,
+                totalServices: allServices.length,
+                activeServices: allServices.filter(s => s.active).length,
             })
         } catch (err) {
             console.error('Dashboard fetch error:', err)
@@ -71,22 +71,22 @@ const Dashboard = () => {
                             })}
                         </p>
                     </div>
-                    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                         <div style={{
-                            padding:'8px 16px',
-                            background:'rgba(34,197,94,0.1)',
-                            border:'1px solid rgba(34,197,94,0.25)',
-                            borderRadius:20,
-                            fontSize:'0.75rem',
-                            color:'#22c55e',
-                            fontWeight:700,
+                            padding: '8px 16px',
+                            background: 'rgba(34,197,94,0.1)',
+                            border: '1px solid rgba(34,197,94,0.25)',
+                            borderRadius: 20,
+                            fontSize: '0.75rem',
+                            color: '#22c55e',
+                            fontWeight: 700,
                         }}>
                             ● API Connected
                         </div>
                     </div>
                 </div>
 
-                {/* Booking Stats - Removed pending and approved from display, kept rejected in calculation */}
+                {/* Booking Stats */}
                 <div className="admin-stats-grid">
                     <div className="admin-stat-card">
                         <div className="admin-stat-label">Total Bookings</div>
@@ -144,18 +144,36 @@ const Dashboard = () => {
                                     {recent.map(b => (
                                         <tr key={b.id}>
                                             <td>
-                                                <div style={{ fontWeight:700, color:'#fff' }}>{b.name}</div>
-                                                <div style={{ fontSize:'0.72rem', color:'#888' }}>{b.email}</div>
+                                                <div style={{ fontWeight: 700, color: '#fff' }}>{b.name}</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#888' }}>{b.email}</div>
                                             </td>
                                             <td>{b.service}</td>
                                             <td>{b.artist || '—'}</td>
                                             <td>
                                                 <div>{b.date}</div>
-                                                <div style={{ fontSize:'0.72rem', color:'#888' }}>{b.time}</div>
+                                                <div style={{ fontSize: '0.72rem', color: '#888' }}>{b.time}</div>
                                             </td>
                                             <td>
-                                                <span className={`badge badge-completed`}>
-                                                    <span className="badge-dot" />
+                                                <span style={{
+                                                    padding: '4px 12px',
+                                                    background: 'rgba(34,197,94,0.1)',
+                                                    border: '1px solid rgba(34,197,94,0.25)',
+                                                    borderRadius: 20,
+                                                    fontSize: '0.75rem',
+                                                    color: '#22c55e',
+                                                    fontWeight: 600,
+                                                    display: 'inline-flex',
+                                                    alignItems: 'center',
+                                                    gap: '4px'
+                                                }}>
+                                                    <span style={{
+                                                        display: 'inline-block',
+                                                        width: '6px',
+                                                        height: '6px',
+                                                        borderRadius: '50%',
+                                                        background: '#22c55e',
+                                                        marginRight: '4px'
+                                                    }} />
                                                     Completed
                                                 </span>
                                             </td>
