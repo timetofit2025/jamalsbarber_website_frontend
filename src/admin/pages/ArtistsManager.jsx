@@ -3,18 +3,32 @@ import React, { useState, useEffect, useRef } from 'react'
 import AdminLayout from '../../admin/components/AdminLayout/AdminLayout'
 import { artistsAPI, bookingsAPI } from '../api/api'
 
-const EMPTY_FORM = { name:'', role:'', bio:'', instagram:'' }
+const EMPTY_FORM = { name: '', role: '', bio: '', instagram: '' }
+
+// ✅ FIX — Dynamic image URL works on both local and production
+const getImageUrl = (path) => {
+    if (!path) return null
+    if (path.startsWith('http')) return path
+    // Uses current domain automatically
+    // Local:      http://localhost:5173  → http://localhost:8080/uploads/...
+    // Production: http://jamalsbarber.timetofit.in → /uploads/...
+    const apiBase = import.meta.env.VITE_API_URL || '/api'
+    const baseUrl = apiBase.replace('/api', '')
+    return baseUrl ? `${baseUrl}${path}` : path
+}
+
+const FALLBACK_IMG = 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=500&fit=crop&q=80'
 
 const ArtistsManager = () => {
-    const [artists,    setArtists]    = useState([])
-    const [loading,    setLoading]    = useState(true)
-    const [toast,      setToast]      = useState(null)
-    const [modalOpen,  setModalOpen]  = useState(false)
+    const [artists, setArtists] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [toast, setToast] = useState(null)
+    const [modalOpen, setModalOpen] = useState(false)
     const [editArtist, setEditArtist] = useState(null)
-    const [form,       setForm]       = useState(EMPTY_FORM)
-    const [photo,      setPhoto]      = useState(null)
-    const [preview,    setPreview]    = useState(null)
-    const [saving,     setSaving]     = useState(false)
+    const [form, setForm] = useState(EMPTY_FORM)
+    const [photo, setPhoto] = useState(null)
+    const [preview, setPreview] = useState(null)
+    const [saving, setSaving] = useState(false)
     const [pendingCount, setPendingCount] = useState(0)
     const fileRef = useRef(null)
 
@@ -35,7 +49,10 @@ const ArtistsManager = () => {
         }
     }
 
-    const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
+    const showToast = (msg) => {
+        setToast(msg)
+        setTimeout(() => setToast(null), 3000)
+    }
 
     const openAdd = () => {
         setForm(EMPTY_FORM)
@@ -46,14 +63,23 @@ const ArtistsManager = () => {
     }
 
     const openEdit = (artist) => {
-        setForm({ name: artist.name, role: artist.role, bio: artist.bio || '', instagram: artist.instagram || '' })
+        setForm({
+            name: artist.name,
+            role: artist.role,
+            bio: artist.bio || '',
+            instagram: artist.instagram || '',
+        })
         setPhoto(null)
-        setPreview(artist.photoUrl ? `http://localhost:8080${artist.photoUrl}` : null)
+        // ✅ FIX — use getImageUrl helper for edit preview
+        setPreview(artist.photoUrl ? getImageUrl(artist.photoUrl) : null)
         setEditArtist(artist)
         setModalOpen(true)
     }
 
-    const closeModal = () => { setModalOpen(false); setEditArtist(null) }
+    const closeModal = () => {
+        setModalOpen(false)
+        setEditArtist(null)
+    }
 
     const handlePhotoChange = (e) => {
         const file = e.target.files[0]
@@ -69,13 +95,15 @@ const ArtistsManager = () => {
             const fd = new FormData()
             fd.append('name', form.name)
             fd.append('role', form.role)
-            if (form.bio)       fd.append('bio', form.bio)
+            if (form.bio) fd.append('bio', form.bio)
             if (form.instagram) fd.append('instagram', form.instagram)
-            if (photo)          fd.append('photo', photo)
+            if (photo) fd.append('photo', photo)
 
             if (editArtist) {
                 const updated = await artistsAPI.update(editArtist.id, fd)
-                setArtists(prev => prev.map(a => a.id === editArtist.id ? updated : a))
+                setArtists(prev => prev.map(a =>
+                    a.id === editArtist.id ? updated : a
+                ))
                 showToast('✏️ Artist updated successfully.')
             } else {
                 const created = await artistsAPI.create(fd)
@@ -108,7 +136,9 @@ const ArtistsManager = () => {
                 <div className="admin-page-header">
                     <div>
                         <h1 className="admin-page-title">Artist Crew</h1>
-                        <p className="admin-page-sub">{artists.length} artists · Updates reflect live on website</p>
+                        <p className="admin-page-sub">
+                            {artists.length} artists · Updates reflect live on website
+                        </p>
                     </div>
                     <button className="admin-btn admin-btn-primary" onClick={openAdd}>
                         + Add Artist
@@ -116,30 +146,61 @@ const ArtistsManager = () => {
                 </div>
 
                 {loading ? (
-                    <div className="admin-loading"><div className="loading-spinner" /> Loading artists...</div>
+                    <div className="admin-loading">
+                        <div className="loading-spinner" /> Loading artists...
+                    </div>
                 ) : artists.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">👥</div>
                         <div className="empty-text">No artists yet. Add your first barber!</div>
                     </div>
                 ) : (
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(220px,1fr))', gap:16 }}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(220px,1fr))',
+                        gap: 16,
+                    }}>
                         {artists.map(artist => (
-                            <div key={artist.id} className="admin-card" style={{ marginBottom:0 }}>
+                            <div key={artist.id} className="admin-card" style={{ marginBottom: 0 }}>
+                                {/* ✅ FIX — getImageUrl handles both local and production */}
                                 <img
-                                    src={artist.photoUrl ? `http://localhost:8080${artist.photoUrl}` : 'https://images.unsplash.com/photo-1622253692010-333f2da6031d?w=400&h=500&fit=crop&q=80'}
+                                    src={artist.photoUrl
+                                        ? getImageUrl(artist.photoUrl)
+                                        : FALLBACK_IMG
+                                    }
                                     alt={artist.name}
-                                    style={{ width:'100%', aspectRatio:'3/4', objectFit:'cover', display:'block', filter:'grayscale(30%)' }}
+                                    onError={e => { e.target.src = FALLBACK_IMG }}
+                                    style={{
+                                        width: '100%',
+                                        aspectRatio: '3/4',
+                                        objectFit: 'cover',
+                                        display: 'block',
+                                        filter: 'grayscale(30%)',
+                                    }}
                                 />
-                                <div style={{ padding:'16px' }}>
-                                    <div style={{ fontFamily:'Playfair Display,serif', fontWeight:700, color:'#fff', marginBottom:3 }}>
+                                <div style={{ padding: '16px' }}>
+                                    <div style={{
+                                        fontFamily: 'Playfair Display,serif',
+                                        fontWeight: 700,
+                                        color: '#fff',
+                                        marginBottom: 3,
+                                    }}>
                                         {artist.name}
                                     </div>
-                                    <div style={{ fontSize:'0.78rem', color:'#c8a96e', marginBottom:10 }}>
+                                    <div style={{
+                                        fontSize: '0.78rem',
+                                        color: '#c8a96e',
+                                        marginBottom: 10,
+                                    }}>
                                         {artist.role}
                                     </div>
                                     {artist.bio && (
-                                        <div style={{ fontSize:'0.78rem', color:'#888', marginBottom:12, lineHeight:1.5 }}>
+                                        <div style={{
+                                            fontSize: '0.78rem',
+                                            color: '#888',
+                                            marginBottom: 12,
+                                            lineHeight: 1.5,
+                                        }}>
                                             {artist.bio}
                                         </div>
                                     )}
@@ -147,9 +208,19 @@ const ArtistsManager = () => {
                                         <span className="badge-dot" />
                                         {artist.active ? 'Active' : 'Inactive'}
                                     </span>
-                                    <div className="action-btns" style={{ marginTop:12 }}>
-                                        <button className="act-btn act-edit" onClick={() => openEdit(artist)}>✏ Edit</button>
-                                        <button className="act-btn act-delete" onClick={() => handleDelete(artist.id)}>🗑 Remove</button>
+                                    <div className="action-btns" style={{ marginTop: 12 }}>
+                                        <button
+                                            className="act-btn act-edit"
+                                            onClick={() => openEdit(artist)}
+                                        >
+                                            ✏ Edit
+                                        </button>
+                                        <button
+                                            className="act-btn act-delete"
+                                            onClick={() => handleDelete(artist.id)}
+                                        >
+                                            🗑 Remove
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -158,9 +229,12 @@ const ArtistsManager = () => {
                 )}
             </div>
 
-            {/* Modal */}
+            {/* ── Add / Edit Modal ── */}
             {modalOpen && (
-                <div className="admin-modal-overlay" onClick={e => e.target === e.currentTarget && closeModal()}>
+                <div
+                    className="admin-modal-overlay"
+                    onClick={e => e.target === e.currentTarget && closeModal()}
+                >
                     <div className="admin-modal">
                         <div className="admin-modal-header">
                             <div className="admin-modal-title">
@@ -170,10 +244,14 @@ const ArtistsManager = () => {
                         </div>
                         <form onSubmit={handleSave}>
                             <div className="admin-form">
+
                                 {/* Photo upload */}
                                 <div className="admin-form-group">
                                     <label className="admin-label">Photo</label>
-                                    <div className="upload-zone" onClick={() => fileRef.current.click()}>
+                                    <div
+                                        className="upload-zone"
+                                        onClick={() => fileRef.current.click()}
+                                    >
                                         <div className="upload-zone-icon">📸</div>
                                         <div className="upload-zone-text">
                                             {photo ? photo.name : 'Click to upload photo'}
@@ -182,43 +260,73 @@ const ArtistsManager = () => {
                                             ref={fileRef}
                                             type="file"
                                             accept="image/*"
-                                            style={{ display:'none' }}
+                                            style={{ display: 'none' }}
                                             onChange={handlePhotoChange}
                                         />
                                     </div>
                                     {preview && (
-                                        <img src={preview} alt="Preview" className="upload-preview" />
+                                        <img
+                                            src={preview}
+                                            alt="Preview"
+                                            className="upload-preview"
+                                        />
                                     )}
                                 </div>
 
                                 <div className="admin-form-grid">
                                     <div className="admin-form-group">
                                         <label className="admin-label">Full Name *</label>
-                                        <input className="admin-input" required placeholder="Artist's name"
-                                            value={form.name} onChange={e => setForm({...form, name:e.target.value})} />
+                                        <input
+                                            className="admin-input"
+                                            required
+                                            placeholder="Artist's name"
+                                            value={form.name}
+                                            onChange={e => setForm({ ...form, name: e.target.value })}
+                                        />
                                     </div>
                                     <div className="admin-form-group">
                                         <label className="admin-label">Role / Title *</label>
-                                        <input className="admin-input" required placeholder="e.g. Senior Barber"
-                                            value={form.role} onChange={e => setForm({...form, role:e.target.value})} />
+                                        <input
+                                            className="admin-input"
+                                            required
+                                            placeholder="e.g. Senior Barber"
+                                            value={form.role}
+                                            onChange={e => setForm({ ...form, role: e.target.value })}
+                                        />
                                     </div>
                                     <div className="admin-form-group full">
                                         <label className="admin-label">Bio (optional)</label>
-                                        <textarea className="admin-textarea" placeholder="Short bio..."
-                                            value={form.bio} onChange={e => setForm({...form, bio:e.target.value})} />
+                                        <textarea
+                                            className="admin-textarea"
+                                            placeholder="Short bio..."
+                                            value={form.bio}
+                                            onChange={e => setForm({ ...form, bio: e.target.value })}
+                                        />
                                     </div>
                                     <div className="admin-form-group full">
                                         <label className="admin-label">Instagram (optional)</label>
-                                        <input className="admin-input" placeholder="@username"
-                                            value={form.instagram} onChange={e => setForm({...form, instagram:e.target.value})} />
+                                        <input
+                                            className="admin-input"
+                                            placeholder="@username"
+                                            value={form.instagram}
+                                            onChange={e => setForm({ ...form, instagram: e.target.value })}
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div className="admin-modal-footer">
-                                <button type="button" className="admin-btn admin-btn-secondary" onClick={closeModal}>
+                                <button
+                                    type="button"
+                                    className="admin-btn admin-btn-secondary"
+                                    onClick={closeModal}
+                                >
                                     Cancel
                                 </button>
-                                <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
+                                <button
+                                    type="submit"
+                                    className="admin-btn admin-btn-primary"
+                                    disabled={saving}
+                                >
                                     {saving ? 'Saving...' : editArtist ? 'Save Changes' : 'Add to Crew'}
                                 </button>
                             </div>
@@ -227,7 +335,11 @@ const ArtistsManager = () => {
                 </div>
             )}
 
-            {toast && <div className="admin-toast"><span className="admin-toast-msg">{toast}</span></div>}
+            {toast && (
+                <div className="admin-toast">
+                    <span className="admin-toast-msg">{toast}</span>
+                </div>
+            )}
         </AdminLayout>
     )
 }

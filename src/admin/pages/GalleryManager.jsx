@@ -3,15 +3,24 @@ import React, { useState, useEffect, useRef } from 'react'
 import AdminLayout from '../../admin/components/AdminLayout/AdminLayout'
 import { galleryAPI, bookingsAPI } from '../api/api'
 
+// ✅ FIX — Dynamic image URL works on both local and production
+const getImageUrl = (path) => {
+    if (!path) return null
+    if (path.startsWith('http')) return path
+    const apiBase = import.meta.env.VITE_API_URL || '/api'
+    const baseUrl = apiBase.replace('/api', '')
+    return baseUrl ? `${baseUrl}${path}` : path
+}
+
 const GalleryManager = () => {
-    const [images,    setImages]    = useState([])
-    const [loading,   setLoading]   = useState(true)
-    const [toast,     setToast]     = useState(null)
+    const [images, setImages] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [toast, setToast] = useState(null)
     const [modalOpen, setModalOpen] = useState(false)
-    const [form,      setForm]      = useState({ label:'', category:'', displayOrder:0 })
-    const [file,      setFile]      = useState(null)
-    const [preview,   setPreview]   = useState(null)
-    const [saving,    setSaving]    = useState(false)
+    const [form, setForm] = useState({ label: '', category: '', displayOrder: 0 })
+    const [file, setFile] = useState(null)
+    const [preview, setPreview] = useState(null)
+    const [saving, setSaving] = useState(false)
     const [pendingCount, setPendingCount] = useState(0)
     const fileRef = useRef(null)
 
@@ -32,7 +41,10 @@ const GalleryManager = () => {
         }
     }
 
-    const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
+    const showToast = (msg) => {
+        setToast(msg)
+        setTimeout(() => setToast(null), 3000)
+    }
 
     const handleFileChange = (e) => {
         const f = e.target.files[0]
@@ -49,13 +61,13 @@ const GalleryManager = () => {
             const fd = new FormData()
             fd.append('image', file)
             fd.append('label', form.label)
-            if (form.category)     fd.append('category', form.category)
+            if (form.category) fd.append('category', form.category)
             if (form.displayOrder) fd.append('displayOrder', form.displayOrder)
 
             const created = await galleryAPI.upload(fd)
             setImages(prev => [...prev, created])
             setModalOpen(false)
-            setForm({ label:'', category:'', displayOrder:0 })
+            setForm({ label: '', category: '', displayOrder: 0 })
             setFile(null)
             setPreview(null)
             showToast('🖼 Image uploaded to gallery.')
@@ -87,8 +99,8 @@ const GalleryManager = () => {
         }
     }
 
-    const visible  = images.filter(i => i.visible).length
-    const hidden   = images.filter(i => !i.visible).length
+    const visible = images.filter(i => i.visible).length
+    const hidden = images.filter(i => !i.visible).length
 
     return (
         <AdminLayout pendingCount={pendingCount}>
@@ -101,60 +113,110 @@ const GalleryManager = () => {
                             {images.length} images · {visible} visible · {hidden} hidden
                         </p>
                     </div>
-                    <button className="admin-btn admin-btn-primary" onClick={() => setModalOpen(true)}>
+                    <button
+                        className="admin-btn admin-btn-primary"
+                        onClick={() => setModalOpen(true)}
+                    >
                         + Upload Image
                     </button>
                 </div>
 
                 {loading ? (
-                    <div className="admin-loading"><div className="loading-spinner" /> Loading gallery...</div>
+                    <div className="admin-loading">
+                        <div className="loading-spinner" /> Loading gallery...
+                    </div>
                 ) : images.length === 0 ? (
                     <div className="empty-state">
                         <div className="empty-icon">🖼</div>
                         <div className="empty-text">No images yet. Upload your first photo!</div>
                     </div>
                 ) : (
-                    <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(200px,1fr))', gap:12 }}>
+                    <div style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'repeat(auto-fill, minmax(200px,1fr))',
+                        gap: 12,
+                    }}>
                         {images.map(img => (
                             <div key={img.id} style={{
-                                background:'#1a1a1a',
-                                border:'1px solid rgba(255,255,255,0.07)',
-                                borderRadius:8,
-                                overflow:'hidden',
+                                background: '#1a1a1a',
+                                border: '1px solid rgba(255,255,255,0.07)',
+                                borderRadius: 8,
+                                overflow: 'hidden',
                                 opacity: img.visible ? 1 : 0.5,
-                                transition:'opacity 0.3s',
+                                transition: 'opacity 0.3s',
                             }}>
-                                <div style={{ position:'relative', aspectRatio:'1' }}>
+                                <div style={{ position: 'relative', aspectRatio: '1' }}>
+                                    {/* ✅ FIX — getImageUrl handles both local and production */}
                                     <img
-                                        src={`http://localhost:8080${img.imageUrl}`}
+                                        src={getImageUrl(img.imageUrl)}
                                         alt={img.label}
-                                        style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }}
+                                        onError={e => {
+                                            e.target.style.display = 'none'
+                                            e.target.nextSibling.style.display = 'flex'
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            height: '100%',
+                                            objectFit: 'cover',
+                                            display: 'block',
+                                        }}
                                     />
+                                    {/* Fallback if image fails to load */}
+                                    <div style={{
+                                        display: 'none',
+                                        width: '100%',
+                                        height: '100%',
+                                        background: '#2a2a2a',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontSize: '2rem',
+                                        color: '#555',
+                                    }}>
+                                        🖼
+                                    </div>
                                     {!img.visible && (
                                         <div style={{
-                                            position:'absolute', inset:0,
-                                            background:'rgba(0,0,0,0.5)',
-                                            display:'flex', alignItems:'center', justifyContent:'center',
-                                            fontSize:'1.5rem',
-                                        }}>👁‍🗨</div>
+                                            position: 'absolute',
+                                            inset: 0,
+                                            background: 'rgba(0,0,0,0.5)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            fontSize: '1.5rem',
+                                        }}>
+                                            👁‍🗨
+                                        </div>
                                     )}
                                 </div>
-                                <div style={{ padding:'12px' }}>
-                                    <div style={{ fontSize:'0.85rem', fontWeight:600, color:'#fff', marginBottom:4 }}>
+                                <div style={{ padding: '12px' }}>
+                                    <div style={{
+                                        fontSize: '0.85rem',
+                                        fontWeight: 600,
+                                        color: '#fff',
+                                        marginBottom: 4,
+                                    }}>
                                         {img.label}
                                     </div>
                                     {img.category && (
-                                        <div style={{ fontSize:'0.7rem', color:'#c8a96e', marginBottom:8 }}>
+                                        <div style={{
+                                            fontSize: '0.7rem',
+                                            color: '#c8a96e',
+                                            marginBottom: 8,
+                                        }}>
                                             {img.category}
                                         </div>
                                     )}
                                     <div className="action-btns">
-                                        <button className="act-btn act-view"
-                                            onClick={() => handleToggle(img.id)}>
+                                        <button
+                                            className="act-btn act-view"
+                                            onClick={() => handleToggle(img.id)}
+                                        >
                                             {img.visible ? '👁 Hide' : '👁 Show'}
                                         </button>
-                                        <button className="act-btn act-delete"
-                                            onClick={() => handleDelete(img.id)}>
+                                        <button
+                                            className="act-btn act-delete"
+                                            onClick={() => handleDelete(img.id)}
+                                        >
                                             🗑
                                         </button>
                                     </div>
@@ -165,20 +227,30 @@ const GalleryManager = () => {
                 )}
             </div>
 
-            {/* Upload Modal */}
+            {/* ── Upload Modal ── */}
             {modalOpen && (
-                <div className="admin-modal-overlay" onClick={e => e.target === e.currentTarget && setModalOpen(false)}>
+                <div
+                    className="admin-modal-overlay"
+                    onClick={e => e.target === e.currentTarget && setModalOpen(false)}
+                >
                     <div className="admin-modal">
                         <div className="admin-modal-header">
                             <div className="admin-modal-title">Upload Gallery Image</div>
-                            <button className="admin-modal-close" onClick={() => setModalOpen(false)}>✕</button>
+                            <button
+                                className="admin-modal-close"
+                                onClick={() => setModalOpen(false)}
+                            >
+                                ✕
+                            </button>
                         </div>
                         <form onSubmit={handleUpload}>
                             <div className="admin-form">
-                                {/* File upload */}
                                 <div className="admin-form-group">
                                     <label className="admin-label">Image File *</label>
-                                    <div className="upload-zone" onClick={() => fileRef.current.click()}>
+                                    <div
+                                        className="upload-zone"
+                                        onClick={() => fileRef.current.click()}
+                                    >
                                         <div className="upload-zone-icon">📁</div>
                                         <div className="upload-zone-text">
                                             {file ? file.name : 'Click to select image'}
@@ -187,25 +259,37 @@ const GalleryManager = () => {
                                             ref={fileRef}
                                             type="file"
                                             accept="image/*"
-                                            style={{ display:'none' }}
+                                            style={{ display: 'none' }}
                                             onChange={handleFileChange}
                                         />
                                     </div>
                                     {preview && (
-                                        <img src={preview} alt="Preview" className="upload-preview" />
+                                        <img
+                                            src={preview}
+                                            alt="Preview"
+                                            className="upload-preview"
+                                        />
                                     )}
                                 </div>
 
                                 <div className="admin-form-grid">
                                     <div className="admin-form-group">
                                         <label className="admin-label">Caption / Label *</label>
-                                        <input className="admin-input" required placeholder="e.g. Fresh Fade"
-                                            value={form.label} onChange={e => setForm({...form, label:e.target.value})} />
+                                        <input
+                                            className="admin-input"
+                                            required
+                                            placeholder="e.g. Fresh Fade"
+                                            value={form.label}
+                                            onChange={e => setForm({ ...form, label: e.target.value })}
+                                        />
                                     </div>
                                     <div className="admin-form-group">
                                         <label className="admin-label">Category (optional)</label>
-                                        <select className="admin-select" value={form.category}
-                                            onChange={e => setForm({...form, category:e.target.value})}>
+                                        <select
+                                            className="admin-select"
+                                            value={form.category}
+                                            onChange={e => setForm({ ...form, category: e.target.value })}
+                                        >
                                             <option value="">Select category</option>
                                             <option value="cuts">Cuts</option>
                                             <option value="shaves">Shaves</option>
@@ -216,16 +300,33 @@ const GalleryManager = () => {
                                     </div>
                                     <div className="admin-form-group">
                                         <label className="admin-label">Display Order</label>
-                                        <input className="admin-input" type="number" min="0" placeholder="0"
+                                        <input
+                                            className="admin-input"
+                                            type="number"
+                                            min="0"
+                                            placeholder="0"
                                             value={form.displayOrder}
-                                            onChange={e => setForm({...form, displayOrder:parseInt(e.target.value)||0})} />
+                                            onChange={e => setForm({
+                                                ...form,
+                                                displayOrder: parseInt(e.target.value) || 0,
+                                            })}
+                                        />
                                     </div>
                                 </div>
                             </div>
                             <div className="admin-modal-footer">
-                                <button type="button" className="admin-btn admin-btn-secondary"
-                                    onClick={() => setModalOpen(false)}>Cancel</button>
-                                <button type="submit" className="admin-btn admin-btn-primary" disabled={saving}>
+                                <button
+                                    type="button"
+                                    className="admin-btn admin-btn-secondary"
+                                    onClick={() => setModalOpen(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="admin-btn admin-btn-primary"
+                                    disabled={saving}
+                                >
                                     {saving ? 'Uploading...' : 'Upload Image'}
                                 </button>
                             </div>
@@ -234,7 +335,11 @@ const GalleryManager = () => {
                 </div>
             )}
 
-            {toast && <div className="admin-toast"><span className="admin-toast-msg">{toast}</span></div>}
+            {toast && (
+                <div className="admin-toast">
+                    <span className="admin-toast-msg">{toast}</span>
+                </div>
+            )}
         </AdminLayout>
     )
 }
