@@ -35,6 +35,7 @@ pipeline {
         stage('Deploy') {
             steps {
                 echo 'Deploying frontend to local server...'
+                // Remove SSH agent and use local commands
                 sh '''
                     # Remove old files
                     rm -rf /var/www/jamalbarbers/*
@@ -42,13 +43,13 @@ pipeline {
                     # Copy new build files
                     cp -r dist/* /var/www/jamalbarbers/
                     
-                    # Set proper permissions
+                    # Set proper permissions (if needed)
                     chmod -R 755 /var/www/jamalbarbers/
                     
                     # Reload nginx
                     sudo systemctl reload nginx
                     
-                    echo "✅ Frontend deployed successfully to /var/www/jamalbarbers/"
+                    echo "✅ Frontend deployed successfully!"
                 '''
             }
         }
