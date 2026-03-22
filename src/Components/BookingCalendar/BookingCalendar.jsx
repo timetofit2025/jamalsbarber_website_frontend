@@ -231,7 +231,7 @@ const BookingCalendar = ({ onDateSelect, onTimeSelect, selectedDate, selectedTim
                                                 : `${remaining} spot${remaining !== 1 ? 's' : ''} remaining`
                                         }
                                     >
-                                        <span className="slot-time">{formatTimeForDisplay(time)}</span>
+                                        <span className="slot-time">{time}</span>
                                         <span className="slot-status-label">
                                             {isFull
                                                 ? '✕ Full'
