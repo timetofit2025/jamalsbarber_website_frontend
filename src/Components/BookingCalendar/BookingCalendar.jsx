@@ -3,9 +3,9 @@ import React, { useState, useEffect } from 'react'
 import './BookingCalendar.css'
 
 const TIME_SLOTS = [
-    "9:00 AM", "10:00 AM", "11:00 AM", "12:00 PM",
-    "1:00 PM",  "2:00 PM",  "3:00 PM",  "4:00 PM",
-    "5:00 PM",  "6:00 PM",  "7:00 PM",
+    "09:00", "10:00", "11:00", "12:00",
+    "13:00", "14:00", "15:00", "16:00",
+    "17:00", "18:00", "19:00",
 ]
 
 const DAYS    = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -231,7 +231,7 @@ const BookingCalendar = ({ onDateSelect, onTimeSelect, selectedDate, selectedTim
                                                 : `${remaining} spot${remaining !== 1 ? 's' : ''} remaining`
                                         }
                                     >
-                                        <span className="slot-time">{time}</span>
+                                        <span className="slot-time">{formatTimeForDisplay(time)}</span>
                                         <span className="slot-status-label">
                                             {isFull
                                                 ? '✕ Full'
