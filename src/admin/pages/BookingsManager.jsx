@@ -73,7 +73,7 @@ const BookingsManager = () => {
 
     const chips = [
         { id: 'all',      label: `All (${bookings.length})` },
-        { id: 'pending',  label: `Pending (${bookings.filter(b => b.status === 'pending').length})` },
+        // { id: 'pending',  label: `Pending (${bookings.filter(b => b.status === 'pending').length})` },
         { id: 'rejected', label: `Rejected (${bookings.filter(b => b.status === 'rejected').length})` },
     ]
 
