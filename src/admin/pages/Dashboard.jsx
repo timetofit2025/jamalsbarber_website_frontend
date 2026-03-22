@@ -38,12 +38,17 @@ const Dashboard = () => {
         }
     }
 
-    const pendingCount = stats?.pendingBookings || 0
-    const recent = [...bookings].slice(0, 6)
+    // Transform recent bookings to show "completed" status
+    const recent = [...bookings]
+        .slice(0, 6)
+        .map(booking => ({
+            ...booking,
+            status: 'completed'
+        }))
 
     if (loading) {
         return (
-            <AdminLayout pendingCount={pendingCount}>
+            <AdminLayout pendingCount={0}>
                 <div className="admin-loading">
                     <div className="loading-spinner" /> Loading dashboard...
                 </div>
@@ -52,7 +57,7 @@ const Dashboard = () => {
     }
 
     return (
-        <AdminLayout pendingCount={pendingCount}>
+        <AdminLayout pendingCount={0}>
             <div className="admin-page">
 
                 {/* Header */}
@@ -81,7 +86,7 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                {/* Booking Stats */}
+                {/* Booking Stats - Removed pending and approved from display, kept rejected in calculation */}
                 <div className="admin-stats-grid">
                     <div className="admin-stat-card">
                         <div className="admin-stat-label">Total Bookings</div>
@@ -89,24 +94,10 @@ const Dashboard = () => {
                         <div className="admin-stat-meta">All time</div>
                     </div>
                     <div className="admin-stat-card">
-                        <div className="admin-stat-label">Pending</div>
-                        <div className="admin-stat-value amber">{stats.pendingBookings}</div>
-                        <div className="admin-stat-meta">Awaiting action</div>
-                    </div>
-                    <div className="admin-stat-card">
-                        <div className="admin-stat-label">Approved</div>
-                        <div className="admin-stat-value green">{stats.approvedBookings}</div>
-                        <div className="admin-stat-meta">Confirmed</div>
-                    </div>
-                    <div className="admin-stat-card">
-                        <div className="admin-stat-label">Rejected</div>
+                        <div className="admin-stat-label">Rejected Bookings</div>
                         <div className="admin-stat-value red">{stats.rejectedBookings}</div>
                         <div className="admin-stat-meta">Declined</div>
                     </div>
-                </div>
-
-                {/* Content Stats */}
-                <div className="admin-stats-grid" style={{ gridTemplateColumns:'repeat(3,1fr)', marginBottom:28 }}>
                     <div className="admin-stat-card">
                         <div className="admin-stat-label">Artist Crew</div>
                         <div className="admin-stat-value">{stats.totalArtists}</div>
@@ -163,9 +154,9 @@ const Dashboard = () => {
                                                 <div style={{ fontSize:'0.72rem', color:'#888' }}>{b.time}</div>
                                             </td>
                                             <td>
-                                                <span className={`badge badge-${b.status}`}>
+                                                <span className={`badge badge-completed`}>
                                                     <span className="badge-dot" />
-                                                    {b.status.charAt(0).toUpperCase() + b.status.slice(1)}
+                                                    Completed
                                                 </span>
                                             </td>
                                         </tr>
