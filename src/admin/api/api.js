@@ -67,8 +67,8 @@ export const bookingsAPI = {
     getAll:          ()           => request('GET',    '/bookings'),
     getByStatus:     (status)     => request('GET',    `/bookings/status/${status}`),
     getById:         (id)         => request('GET',    `/bookings/${id}`),
-    updateStatus:    (id, status, adminNote) =>
-        request('PATCH', `/bookings/${id}/status`, { status, adminNote }),
+    updateStatus: (id, status, adminNote) =>
+    request('PATCH', `/bookings/${id}/status?status=${status}&adminNote=${encodeURIComponent(adminNote || '')}`),
     delete:          (id)         => request('DELETE', `/bookings/${id}`),
 }
 
